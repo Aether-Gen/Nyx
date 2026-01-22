@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aether-Gen Interstellar Division</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --blue-dark: #0b2a44;
+      --blue-main: #123e66;
+      --blue-soft: #1f5d8f;
+      --accent: #f2a900;
+      --white: #ffffff;
+      --muted: #b9c7d6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #163f63 0%, #0b2a44 70%);
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 32px 48px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    header img {
+      height: 96px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin: 0;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 48px;
+    }
+
+    .text-block p {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .text-block p strong {
+      color: var(--white);
+    }
+
+    .text-block em {
+      display: block;
+      margin-top: 32px;
+      font-size: 1.05rem;
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .planet {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .planet img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 0 60px rgba(0,0,0,0.6);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+        padding: 32px;
+      }
+
+      header {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <img src="Logo.png" alt="Aether-Gen Logo">
+    <h1>AETHER-GEN INTERSTELLAR DIVISION</h1>
+  </header>
+
+  <main>
+    <section class="text-block">
+      <p>
+        <strong>A Aether-Gen está reunindo uma nova equipe de profissionais</strong>
+        para uma missão de reconhecimento avançado no sistema Lachesis–Atropos,
+        com destino ao planeta Nyx.
+      </p>
+
+      <p>
+        Esta operação não se baseia em certezas absolutas, mas em competência técnica,
+        autonomia decisória e capacidade de atuação em ambientes onde os modelos atuais
+        ainda são incompletos.
+      </p>
+
+      <em>Inscrições em breve</em>
+    </section>
+
+    <section class="planet">
+      <img src="Nyx 001.jpg" alt="Planeta Nyx">
+    </section>
+  </main>
+
+  <footer>
+    AETHER-GEN — FORGING NEW HORIZONS
+  </footer>
+
+</body>
+</html>
