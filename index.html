@@ -28,18 +28,27 @@
       min-height: 100vh;
       overflow-x: hidden;
       background: #0b2a44;
+
+      /* evita “rubber band” afetar camadas fixas no mobile */
+      overscroll-behavior: none;
     }
 
-    /* BACKGROUND — planeta visível, menos blur e menos escuro */
+    /* BACKGROUND — fixo/estável no viewport (sem “pular”) */
     body::before {
       content: "";
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: -2;
 
-      background: url("Nyx001.jpg") center / cover no-repeat;
+      background: url("Nyx001.jpg") center center / cover no-repeat;
+      background-attachment: fixed;
+
       filter: blur(3px) brightness(0.9);
-      transform: scale(1.04);
+      will-change: filter; /* ajuda em alguns Android/Chrome */
+      /* REMOVIDO: transform: scale(...) */
     }
 
     /* Camada de contraste leve (não muito escura) */
