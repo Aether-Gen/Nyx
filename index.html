@@ -27,13 +27,19 @@
       line-height: 1.6;
     }
 
-    /* HEADER AJUSTADO */
+    /* HEADER */
     header {
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 48px;
+
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 20px 48px;
-      border-bottom: 1px solid rgba(255,255,255,0.15);
     }
 
     header img {
@@ -48,6 +54,7 @@
       line-height: 1.2;
     }
 
+    /* MAIN LAYOUT */
     main {
       max-width: 1100px;
       margin: 0 auto;
@@ -83,6 +90,7 @@
       background: #ffd45c;
     }
 
+    /* PLANET */
     .planet {
       display: flex;
       justify-content: center;
@@ -90,13 +98,13 @@
       padding-top: 24px;
     }
 
-    /* PLANETA REDUZIDO */
     .planet img {
       max-width: 80%;
       border-radius: 8px;
       box-shadow: 0 0 60px rgba(0,0,0,0.6);
     }
 
+    /* FOOTER */
     footer {
       text-align: center;
       padding: 24px;
@@ -105,13 +113,14 @@
       border-top: 1px solid rgba(255,255,255,0.1);
     }
 
+    /* RESPONSIVE */
     @media (max-width: 900px) {
       main {
         grid-template-columns: 1fr;
         padding: 32px;
       }
 
-      header {
+      .header-inner {
         flex-direction: column;
         text-align: center;
       }
@@ -122,8 +131,10 @@
 <body>
 
   <header>
-    <img src="Logo.png" alt="Aether-Gen Logo">
-    <h1>AETHER-GEN INTERSTELLAR DIVISION</h1>
+    <div class="header-inner">
+      <img src="Logo.png" alt="Aether-Gen Logo">
+      <h1>AETHER-GEN INTERSTELLAR DIVISION</h1>
+    </div>
   </header>
 
   <main>
@@ -161,4 +172,3 @@
 
 </body>
 </html>
-
