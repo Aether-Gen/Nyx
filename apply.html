@@ -125,7 +125,7 @@
       text-transform:uppercase;
     }
 
-    /* “Moldura” do formulário */
+    /* Moldura do formulário */
     .form-wrap{
       margin-top:18px;
       border-radius:10px;
@@ -134,18 +134,16 @@
       background:rgba(0,0,0,0.10);
     }
 
-    /* Iframe responsivo (mantém proporção no mobile) */
+    /* ✅ AJUSTE RECOMENDADO: altura flexível (sem proporção fixa) */
     .form-embed{
-      position:relative;
       width:100%;
-      padding-top: 160%; /* ajuste fino p/ altura em mobile; pode variar */
     }
 
     .form-embed iframe{
-      position:absolute;
-      top:0; left:0;
       width:100%;
-      height:100%;
+      height:80vh;        /* altura dinâmica */
+      min-height:900px;   /* garante espaço útil */
+      max-height:1400px;  /* evita “paredão” */
       border:0;
     }
 
@@ -170,8 +168,11 @@
         padding:18px 24px;
       }
 
-      /* um pouco menos alto no mobile, se quiser */
-      .form-embed{ padding-top: 185%; }
+      .form-embed iframe{
+        height:85vh;
+        min-height:1100px;
+        max-height:1600px;
+      }
     }
   </style>
 </head>
