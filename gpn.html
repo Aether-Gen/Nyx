@@ -266,25 +266,19 @@ function drawHex(cx, cy, size, strokeStyle, fillStyle=null, lineW=1){
 }
 
 function cellToXY(r, c){
-  // 1) Seu CSV tem "meia-coluna" (ex: 43 e 43,5), então cada coluna do CSV avança metade do passo X.
-  const halfStepX = TUNE.stepX / 2;
+  // Aqui "Passo X" é o avanço entre colunas do CSV (não dividir por 2).
+  const x = TUNE.offX + c * TUNE.stepX;
 
-  // 2) Coluna inteira lógica (agrupa 2 colunas do CSV: 43 + 43,5 = mesma "coluna 1")
-  const colFull = Math.floor(c / 2); // 0,1,2,3...
+  // Coluna PAR (2,4,6...) mais baixa que ímpar (1,3,5...)
+  // Como c começa em 0: c=0 (coluna 1) -> sem offset
+  //               c=1 (coluna 2) -> +meio passo Y (mais baixa)
+  const yParityOffset = (c % 2 === 1) ? (TUNE.stepY / 2) : 0;
 
-  // 3) X (meia-coluna)
-  const x = TUNE.offX + c * halfStepX;
-
-  // 4) Offset vertical canônico: coluna PAR (2,4,6...) mais baixa que a ímpar (1,3,5...)
-  //    Se colFull=0 representa "coluna 1", então colFull=1 representa "coluna 2".
-  //    Queremos colFull ímpar (+halfStepY).
-  const halfStepY = TUNE.stepY / 2;
-  const yParityOffset = (colFull % 2 === 1) ? halfStepY : 0;
-
-  // 5) Y
   const y = TUNE.offY + r * TUNE.stepY + yParityOffset + (TUNE.shiftY ?? 0);
 
   return { x, y };
+}
+
 }
 
 function computeCanvasSize(){
