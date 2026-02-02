@@ -137,7 +137,10 @@
     </div>
   </main>
 </div>
-
+<label>
+  <input type="checkbox" id="invertParity">
+  Inverter offset de coluna
+</label>
 <script>
 /* ================================
    Config (defaults = seus valores)
@@ -241,10 +244,11 @@ let PICK  = null;   // cell index
    Geometry
 ================================ */
 function hexPoints(cx, cy, size){
-  // flat-top hex (melhor para stepX/stepY custom)
+  // pointy-top hex (em pé)
   const pts = [];
+  const ROT = Math.PI / 6; // 30°
   for (let k=0;k<6;k++){
-    const a = Math.PI/3 * k; // 0..300
+    const a = (Math.PI/3) * k + ROT;
     pts.push([cx + size*Math.cos(a), cy + size*Math.sin(a)]);
   }
   return pts;
@@ -266,11 +270,21 @@ function drawHex(cx, cy, size, strokeStyle, fillStyle=null, lineW=1){
 }
 
 function cellToXY(r, c){
-  // r,c são índices na matriz (0-based para células de dados)
-  // posicionamento: grid retangular com deslocamento por coluna
   const x = TUNE.offX + c * TUNE.stepX;
-  const y = TUNE.offY + r * TUNE.stepY + (c * TUNE.shiftY);
-  return {x, y};
+
+  const half = TUNE.stepY / 2;
+  const parity = c % 2;
+
+  // ⚠️ leitura do checkbox AQUI
+  const invert = document.getElementById('invertParity')?.checked ?? false;
+
+  const parityOffset = invert
+    ? (parity ? 0 : half)
+    : (parity ? half : 0);
+
+  const y = TUNE.offY + r * TUNE.stepY + parityOffset;
+
+  return { x, y };
 }
 
 function computeCanvasSize(){
