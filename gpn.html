@@ -1,802 +1,468 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>NYX — GPN Viewer (CSV unit hexes)</title>
-  <style>
-    :root{
-      --bg0:#061a2a;
-      --bg1:#0b2a44;
-      --panel:#071a2aee;
-      --panel2:#0a2338;
-      --txt:#e9f2ff;
-      --muted:#9fb3c9;
-      --line:#2a86a6;
-      --line2:#1f5d8f;
-      --accent:#f2a900;
-      --hover:#4cc3ff;
-      --sel:#00e5ff;
-      --danger:#ff6b6b;
-    }
-    html,body{height:100%; margin:0; background:radial-gradient(circle at top, #0c3354 0%, var(--bg0) 70%); color:var(--txt); font-family:Segoe UI, Roboto, Helvetica, Arial, sans-serif;}
-    #app{display:grid; grid-template-columns: 320px 1fr; height:100%;}
-    #side{
-      padding:14px 14px 10px;
-      background:linear-gradient(180deg, var(--panel) 0%, rgba(6,26,42,0.78) 100%);
-      border-right:1px solid rgba(255,255,255,0.08);
-      overflow:auto;
-    }
-    h1{font-size:14px; letter-spacing:.08em; margin:0 0 8px; color:#d9ecff;}
-    .sub{font-size:12px; color:var(--muted); line-height:1.35; margin-bottom:12px;}
-    .card{
-      background:rgba(10,35,56,0.7);
-      border:1px solid rgba(255,255,255,0.08);
-      border-radius:10px;
-      padding:10px;
-      margin:10px 0;
-    }
-    .card h2{font-size:12px; margin:0 0 8px; letter-spacing:.08em; color:#cfe6ff;}
-    label{display:block; font-size:12px; color:var(--muted); margin-top:8px;}
-    input[type="text"], input[type="number"]{
-      width:100%;
-      padding:8px 10px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:#041422;
-      color:var(--txt);
-      outline:none;
-    }
-    input[type="number"]{appearance:textfield;}
-    input[type="checkbox"]{transform: translateY(1px);}
-    .row{display:grid; grid-template-columns: 1fr 1fr; gap:8px;}
-    button{
-      width:100%;
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:linear-gradient(180deg, #0f3a5e 0%, #0a2b46 100%);
-      color:var(--txt);
-      font-weight:600;
-      cursor:pointer;
-    }
-    button:hover{filter:brightness(1.06);}
-    .mini{font-size:11px; color:var(--muted); margin-top:6px; line-height:1.35;}
-    .ok{color:#92ffb8;}
-    .bad{color:var(--danger);}
-    #canvasWrap{position:relative; overflow:auto;}
-    #cv{display:block; width:100%; height:100%;}
-    #hud{
-      position:absolute;
-      left:10px; bottom:10px;
-      background:rgba(0,0,0,0.55);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:10px;
-      padding:8px 10px;
-      font-size:12px;
-      color:#d9ecff;
-      pointer-events:none;
-      max-width:min(900px, calc(100% - 24px));
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .pill{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.12);
-      background:rgba(255,255,255,0.06);
-      margin-right:6px;
-      color:#d6ebff;
-      font-size:11px;
-    }
-    .hint{
-      border-left:3px solid var(--accent);
-      padding-left:10px;
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.35;
-    }
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NYX — GPN Viewer (CSV)</title>
+<style>
+  :root{
+    --bg0:#071a2a; --panel:#0b2236cc; --line:#0e3553;
+    --text:#e8f3ff; --muted:#a9bfd3;
+    --btn:#0f3a59; --btn2:#124a72;
+    --stroke: rgba(90,208,255,0.25);
+    --strokeHi: rgba(90,208,255,0.95);
+    --fillHi: rgba(90,208,255,0.10);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    background: radial-gradient(1200px 900px at 30% 0%, #113a5d 0%, var(--bg0) 55%, #061322 100%);
+    color:var(--text);
+  }
+  .wrap{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+  .panel{
+    padding:14px 14px 10px;
+    background:linear-gradient(180deg,var(--panel),#071a2aee);
+    border-right:1px solid var(--line)
+  }
+  h1{font-size:15px;margin:4px 0 10px;letter-spacing:.06em}
+  .hint{font-size:12px;color:var(--muted);line-height:1.35;margin-bottom:12px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:10px;margin:10px 0;background:#061827aa}
+  .card h2{font-size:12px;margin:0 0 8px;color:#cfe6ff;letter-spacing:.08em}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+  input[type="text"],input[type="number"]{
+    width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+    background:#041220;color:var(--text);outline:none
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    width:100%;padding:9px 10px;border-radius:10px;
+    border:1px solid #1a557b;background:linear-gradient(180deg,var(--btn2),var(--btn));
+    color:var(--text);cursor:pointer;font-weight:600;letter-spacing:.04em
+  }
+  .btn:active{transform:translateY(1px)}
+  .small{font-size:11px;color:var(--muted);margin-top:6px}
+  .status{font-size:12px;margin-top:8px;color:#bfe3ff}
+  .status b{color:#8dffb5}
+  .canvasWrap{position:relative;overflow:auto}
+  canvas{display:block}
+  .hud{
+    position:fixed;left:340px;right:14px;bottom:14px;
+    background:#041220cc;border:1px solid var(--line);border-radius:12px;
+    padding:8px 10px;font-size:12px;color:#d7ecff;
+    display:flex;gap:12px;align-items:center;backdrop-filter: blur(6px);
+  }
+  .pill{padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#061827aa;color:#cfe6ff}
+  .pill b{color:#ffffff}
+</style>
 </head>
 <body>
-<div id="app">
-  <aside id="side">
-    <h1>NYX — GPN Viewer</h1>
-    <div class="sub">
-      Desenha <b>todos os hexes unitários</b> do CSV (1 hex = <b>2 colunas</b> no Sheets).<br>
-      <span class="pill">Hexágonos em pé (pointy-top)</span>
-      <span class="pill">Offset por linha (confirmado)</span>
+<div class="wrap">
+  <aside class="panel">
+    <h1>NYX — GPN Viewer (CSV)</h1>
+    <div class="hint">
+      Desenha <b>1 hex por par de colunas</b> (2 colunas no Sheets = 1 hex).
+      Hex <b>em pé</b> (pointy-top). Regra: <b>colunas pares (2,4,6…) ficam mais baixas</b>.
+      Sem coloração aleatória.
     </div>
 
     <div class="card">
       <h2>FONTE (CSV)</h2>
-      <label>Arquivo (na mesma pasta do HTML)</label>
-      <input id="csvPath" type="text" value="hex_grid.csv" />
-      <button id="btnFetch">Carregar CSV (fetch)</button>
-
-      <label>Ou selecione um arquivo local</label>
-      <input id="csvFile" type="file" accept=".csv,text/csv" />
-      <button id="btnFile">Carregar CSV (arquivo)</button>
-
-      <div id="status" class="mini">Status: aguardando</div>
-      <div class="mini hint">
-        Regra confirmada (sua descrição): linhas alternam início em B:C vs A:B.<br>
-        Em termos do viewer: a <b>primeira linha de dados</b> é <b>offset</b> (começa em “meio-hex vazio”).
-      </div>
+      <label>Arquivo (mesma pasta do HTML no GitHub Pages)</label>
+      <input id="csvUrl" type="text" value="hex_grid.csv"/>
+      <button id="btnLoad" class="btn">Recarregar CSV</button>
+      <div class="small">Auto-carrega ao abrir a página.</div>
+      <div id="status" class="status">Status: aguardando…</div>
     </div>
 
     <div class="card">
       <h2>CALIBRAÇÃO</h2>
-      <div class="row">
+      <div class="row2">
         <div>
-          <label>Tamanho do hex</label>
-          <input id="hexSize" type="number" step="0.1" value="11" />
+          <label>Tamanho do hex (s)</label>
+          <input id="hexSize" type="number" step="0.1" value="11"/>
         </div>
-        <div>
-          <label>Shift Y (global)</label>
-          <input id="shiftY" type="number" step="0.1" value="0" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Passo X</label>
-          <input id="stepX" type="number" step="0.1" value="18" />
-        </div>
-        <div>
-          <label>Passo Y</label>
-          <input id="stepY" type="number" step="0.1" value="10" />
-        </div>
-      </div>
-
-      <div class="row">
         <div>
           <label>Offset X</label>
-          <input id="offX" type="number" step="0.1" value="30" />
+          <input id="offX" type="number" step="1" value="30"/>
         </div>
+      </div>
+      <div class="row2">
         <div>
           <label>Offset Y</label>
-          <input id="offY" type="number" step="0.1" value="30" />
+          <input id="offY" type="number" step="1" value="30"/>
+        </div>
+        <div>
+          <label>Gap extra (Y)</label>
+          <input id="gapY" type="number" step="0.1" value="0"/>
         </div>
       </div>
-
-      <label class="mini">
-        <input id="firstRowIsOffset" type="checkbox" checked />
-        Primeira linha de dados é offset (padrão confirmado)
-      </label>
-
-      <button id="btnApply">Aplicar</button>
-      <div class="mini">
-        Seus valores “legibilidade”: <span class="mono">hex=11, stepX=18, stepY=10, shiftY=0, offX=30, offY=30</span>
+      <button id="btnApply" class="btn">Aplicar</button>
+      <div class="small">
+        Geometria (pointy-top): <b>stepX = √3·s</b> (aresta com aresta), <b>stepY = 1,5·s + gapY</b>.
+        Offset por coluna: <b>shiftCol = stepY/2</b> (coluna par mais baixa).
       </div>
     </div>
 
     <div class="card">
-      <h2>BUSCA (col;lin)</h2>
-      <div class="row">
-        <div>
-          <label>Coluna (ex: 45 ou 43,5)</label>
-          <input id="qCol" type="text" placeholder="45" />
-        </div>
-        <div>
-          <label>Linha (ex: 0 ou 16,5)</label>
-          <input id="qLin" type="text" placeholder="0" />
-        </div>
-      </div>
-      <button id="btnFind">Localizar (mais próximo)</button>
-      <button id="btnClearSel">Limpar seleção</button>
-      <div id="findStatus" class="mini"></div>
-    </div>
-
-    <div class="card">
-      <h2>CONFIRMAÇÃO (texto)</h2>
-      <div class="mini">
-        O viewer implementa exatamente o padrão que você descreveu:
-        <div class="mono" style="margin-top:8px; line-height:1.35;">
-          _1_3_5<br>
-          2_4_6<br>
-          _7_9_11<br>
-          8_10_12
-        </div>
-        Onde “_” é o <b>meio-hex vazio</b> no início das linhas 1,3,5… do Sheets
-        (primeira linha de dados = offset).
-      </div>
+      <h2>BUSCA</h2>
+      <label>HexFuncID (ex: 0001)</label>
+      <input id="qFunc" type="text" placeholder="0001"/>
+      <button id="btnFindFunc" class="btn">Destacar</button>
+      <button id="btnClear" class="btn" style="margin-top:8px">Limpar seleção</button>
+      <div class="small">Aceita “#” e espaços. Ex.: “#0001”.</div>
     </div>
   </aside>
 
-  <main id="canvasWrap">
+  <main class="canvasWrap">
     <canvas id="cv"></canvas>
-    <div id="hud">Hover: —</div>
   </main>
+</div>
+
+<div class="hud">
+  <div class="pill">Hover: <b id="hudHover">—</b></div>
+  <div class="pill">Seleção: <b id="hudPick">—</b></div>
 </div>
 
 <script>
 /**
- * ============================================================
- *  NYX — GPN Viewer (CSV unit hexes)
- *  Regras implementadas (confirmadas pelo seu texto):
- *   - Hexes "em pé" (pointy-top): topo = vértice, esquerda/direita = aresta.
- *   - 1 hex do Sheets ocupa 2 colunas (ex.: B:C, D:E, etc).
- *   - Offset é POR LINHA (row parity):
- *       Linha 1 (dados) começa em B:C (offset)
- *       Linha 2 (dados) começa em A:B (normal)
- *       Linha 3 (dados) começa em B:C (offset) ...
- * ============================================================
+ * ✅ REGRA CONFIRMADA (seu texto):
+ *  _1_3_5
+ *  2_4_6
+ *  _7_9_11
+ *  8_10_12
+ *
+ * Interpretação no renderer:
+ *  - q começa em 0 na primeira coluna desenhada.
+ *  - q par (0,2,4,...) = coluna "ímpar" visual => MAIS ALTA
+ *  - q ímpar (1,3,5,...) = coluna "par" visual => MAIS BAIXA (meio-hex)
  */
 
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
+let TUNE = { hexSize: 11, offX: 30, offY: 30, gapY: 0 };
 
-const hud = document.getElementById('hud');
-const statusEl = document.getElementById('status');
-const findStatusEl = document.getElementById('findStatus');
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
 
-const els = {
-  csvPath: document.getElementById('csvPath'),
-  csvFile: document.getElementById('csvFile'),
-  btnFetch: document.getElementById('btnFetch'),
-  btnFile: document.getElementById('btnFile'),
-  btnApply: document.getElementById('btnApply'),
-  hexSize: document.getElementById('hexSize'),
-  stepX: document.getElementById('stepX'),
-  stepY: document.getElementById('stepY'),
-  shiftY: document.getElementById('shiftY'),
-  offX: document.getElementById('offX'),
-  offY: document.getElementById('offY'),
-  firstRowIsOffset: document.getElementById('firstRowIsOffset'),
-  qCol: document.getElementById('qCol'),
-  qLin: document.getElementById('qLin'),
-  btnFind: document.getElementById('btnFind'),
-  btnClearSel: document.getElementById('btnClearSel'),
-};
+const elStatus = document.getElementById('status');
+const elHover = document.getElementById('hudHover');
+const elPick  = document.getElementById('hudPick');
+const elCsvUrl = document.getElementById('csvUrl');
 
-let TUNE = {
-  hexSize: 11,
-  stepX: 18,
-  stepY: 10,
-  shiftY: 0,
-  offX: 30,
-  offY: 30,
-  firstRowIsOffset: true, // confirmado
-};
-
-// --- dados carregados do CSV
-let RAW = null;          // matriz string[][] do CSV
-let colHeaders = null;   // valores das colunas (ex: 43, 43,5, 44...)
-let rowHeaders = null;   // valores das linhas (ex: 17, 16,5...)
-let dataStartRow = 0;
-let dataStartCol = 0;
-
-// --- hexes unitários (cada elemento = um hex desenhado)
-let unitHexes = []; // {r,c, colVal, rowVal, funcId, x,y, key}
-
-let HOVER = null;
-let SELECT = null;
-
-function setStatus(ok, text){
-  statusEl.innerHTML = `Status: <span class="${ok ? 'ok' : 'bad'}">${ok ? 'OK' : 'ERRO'}</span> — ${text}`;
-}
-
-function setFind(text){ findStatusEl.textContent = text || ""; }
-
-// Canvas full size of viewport (minus sidebar scroll handled by CSS)
-function resizeCanvas(){
-  const wrap = document.getElementById('canvasWrap');
-  const rect = wrap.getBoundingClientRect();
-  cv.width = Math.max(800, Math.floor(rect.width));
-  cv.height = Math.max(600, Math.floor(rect.height));
+document.getElementById('btnLoad').addEventListener('click', () => loadCSVFromURL(elCsvUrl.value.trim()));
+document.getElementById('btnApply').addEventListener('click', () => {
+  TUNE.hexSize = Number(document.getElementById('hexSize').value) || 11;
+  TUNE.offX    = Number(document.getElementById('offX').value) || 0;
+  TUNE.offY    = Number(document.getElementById('offY').value) || 0;
+  TUNE.gapY    = Number(document.getElementById('gapY').value) || 0;
   render();
-}
-window.addEventListener('resize', resizeCanvas);
+});
 
-// --- CSV parser robusto (vírgula + aspas)
+document.getElementById('btnClear').addEventListener('click', () => {
+  PICK = null; PICK_FUNC = null; render();
+});
+document.getElementById('btnFindFunc').addEventListener('click', () => {
+  const raw = (document.getElementById('qFunc').value || '').trim().replace(/[^0-9]/g,'');
+  if(!raw) return;
+  PICK_FUNC = raw.padStart(4,'0');
+  PICK = null;
+  render(true);
+});
+
+/* =========================
+   CSV parser robusto
+   ========================= */
 function parseCSV(text){
   const rows = [];
   let row = [];
-  let i = 0;
-  let field = '';
-  let inQuotes = false;
-
-  while (i < text.length){
+  let i=0, cur='', inQ=false;
+  while(i < text.length){
     const ch = text[i];
-
-    if (inQuotes){
-      if (ch === '"'){
-        // "" -> "
-        if (text[i+1] === '"'){
-          field += '"'; i += 2; continue;
-        }
-        inQuotes = false; i++; continue;
-      }
-      field += ch; i++; continue;
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ cur+='"'; i+=2; continue; }
+        inQ=false; i++; continue;
+      } else { cur+=ch; i++; continue; }
+    } else {
+      if(ch === '"'){ inQ=true; i++; continue; }
+      if(ch === ','){ row.push(cur); cur=''; i++; continue; }
+      if(ch === '\r'){ i++; continue; }
+      if(ch === '\n'){ row.push(cur); rows.push(row); row=[]; cur=''; i++; continue; }
+      cur+=ch; i++; continue;
     }
-
-    if (ch === '"'){ inQuotes = true; i++; continue; }
-    if (ch === ','){
-      row.push(field); field = ''; i++; continue;
-    }
-    if (ch === '\n'){
-      row.push(field); field = '';
-      rows.push(row);
-      row = [];
-      i++;
-      continue;
-    }
-    if (ch === '\r'){ i++; continue; }
-
-    field += ch; i++;
   }
-  // last field
-  row.push(field);
-  rows.push(row);
-
-  // normalizar larguras
-  const w = Math.max(...rows.map(r=>r.length));
-  for (const r of rows){
-    while (r.length < w) r.push('');
-  }
+  row.push(cur); rows.push(row);
+  while(rows.length && rows[rows.length-1].every(c => (c||'').trim()==='')) rows.pop();
   return rows;
 }
-
-function looksNumericish(s){
-  if (s == null) return false;
-  const t = String(s).trim();
-  if (!t) return false;
-  // aceita -68, 43,5, 16.5
-  return /^-?\d+(?:[.,]\d+)?$/.test(t);
-}
-
-function toNumberish(s){
+function normNum(s){
+  if(s==null) return null;
   const t = String(s).trim().replace(',', '.');
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
+  if(t==='') return null;
+  const v = Number(t);
+  return Number.isFinite(v) ? v : null;
+}
+function fmt(v){
+  if(v===null || v===undefined) return '—';
+  if(Number.isFinite(v)) return String(v).replace('.', ',');
+  return String(v);
 }
 
-/**
- * Descobrir automaticamente:
- * - linha de cabeçalho das colunas (aquela com muitos números)
- * - coluna onde começam esses números (geralmente depois de 2 células vazias)
- * - linhas de dados abaixo disso
- * - cabeçalho de linhas na primeira coluna (ou segunda)
- */
-function detectHeaders(grid){
-  // achar a linha com maior contagem de "numericish"
-  let bestRow = -1;
-  let bestCount = -1;
-  for (let r=0; r<Math.min(grid.length, 12); r++){
-    let count = 0;
-    for (let c=0; c<grid[r].length; c++){
-      if (looksNumericish(grid[r][c])) count++;
+/* =========================
+   Modelo interno
+   - 1a linha: meridianos (ignora)
+   - 2a linha: valores das colunas (43, 43,5, 44...)
+   - a partir da 3a: primeira(s) coluna(s) tem o valor da linha (17, 16,5...)
+     e o resto é o grid: cada HEX = 2 COLUNAS
+   ========================= */
+let MODEL = null;
+let PICK = null;
+let PICK_FUNC = null;
+
+function buildModel(csv){
+  if(csv.length < 3) throw new Error('CSV curto demais.');
+
+  // linha 2: col headers (números)
+  const colHeader = csv[1];
+
+  // detecta onde começam os números das colunas
+  let startC = 0;
+  for(let c=0;c<colHeader.length;c++){
+    if(normNum(colHeader[c]) !== null){ startC = c; break; }
+  }
+
+  const colVals = [];
+  for(let c=startC;c<colHeader.length;c++) colVals.push(normNum(colHeader[c]));
+
+  // IMPORTANTÍSSIMO: NÃO “COMPRIMIR” LINHAS.
+  // Mantém rr alinhado com a ordem real do CSV.
+  const dataRows = [];
+  const rowVals  = [];
+
+  for(let r=2;r<csv.length;r++){
+    const row = csv[r] || [];
+
+    // tenta achar rowValue antes do startC
+    let rowV = null;
+    for(let c=0;c<Math.min(startC,row.length);c++){
+      const v = normNum(row[c]);
+      if(v !== null){ rowV = v; break; }
     }
-    if (count > bestCount){
-      bestCount = count;
-      bestRow = r;
+    if(rowV===null && startC>0) rowV = normNum(row[startC-1]);
+
+    rowVals.push(rowV);
+    dataRows.push(row.slice(startC));
+  }
+
+  const maxCsvCols = Math.max(...dataRows.map(r=>r.length), 0);
+  const pairCount = Math.floor(maxCsvCols / 2);
+
+  const hexes = [];
+  for(let rr=0; rr<dataRows.length; rr++){
+    const gridRow = dataRows[rr];
+    for(let q=0; q<pairCount; q++){
+      const c0 = q*2, c1 = q*2 + 1;
+      const v0 = (gridRow[c0] ?? '').trim();
+      const v1 = (gridRow[c1] ?? '').trim();
+      const raw = (v0 || v1 || '').trim();
+      if(!raw) continue;
+
+      const funcID = raw.replace(/[^0-9]/g,'').padStart(4,'0');
+      const colValue = colVals[c0] ?? null; // âncora no 1º meio-hex
+      const rowValue = rowVals[rr] ?? null;
+
+      hexes.push({ q, rr, funcID, colValue, rowValue });
     }
   }
-  if (bestRow < 0 || bestCount < 10) return null;
 
-  // achar a primeira coluna numérica nessa linha
-  let firstNumCol = -1;
-  for (let c=0; c<grid[bestRow].length; c++){
-    if (looksNumericish(grid[bestRow][c])) { firstNumCol = c; break; }
-  }
-  if (firstNumCol < 0) return null;
-
-  // Col headers = dessa col até o fim
-  const headers = grid[bestRow].slice(firstNumCol);
-
-  // Data starts next row
-  const startRow = bestRow + 1;
-  const startCol = firstNumCol;
-
-  // Row headers: tentar coluna startCol-1, depois startCol-2, depois 0
-  const candidates = [startCol-1, startCol-2, 0].filter(x=>x>=0);
-  let rowHeaderCol = candidates[0] ?? 0;
-
-  // escolher coluna com mais numericish nas linhas de dados
-  let bestRH = rowHeaderCol, bestRHCount=-1;
-  for (const cand of candidates){
-    let cnt=0;
-    for (let r=startRow; r<grid.length; r++){
-      if (looksNumericish(grid[r][cand])) cnt++;
-    }
-    if (cnt>bestRHCount){ bestRHCount=cnt; bestRH=cand; }
-  }
-  rowHeaderCol = bestRH;
-
-  // coletar row headers
-  const rHeaders = [];
-  for (let r=startRow; r<grid.length; r++){
-    rHeaders.push(grid[r][rowHeaderCol]);
-  }
-
-  return {
-    colHeaderRow: bestRow,
-    dataStartRow: startRow,
-    dataStartCol: startCol,
-    rowHeaderCol,
-    colHeaders: headers,
-    rowHeaders: rHeaders
-  };
+  return { startC, colVals, rowVals, dataRows, pairCount, hexes };
 }
 
-/**
- * Construir lista de hexes unitários a desenhar:
- * - cada hex = par de colunas (anchorCol, anchorCol+1)
- * - offset por linha:
- *    se firstRowIsOffset:
- *      dataRowIndex 0 => começa no "2º elemento" do header (i.e., pula 1 célula)
- *    else:
- *      dataRowIndex 0 => começa normal
- */
-function buildUnitHexes(){
-  unitHexes = [];
-
-  const dataRows = RAW.length - dataStartRow;
-  const dataCols = (RAW[0].length - dataStartCol);
-
-  const headerCols = colHeaders.length; // deve bater com dataCols em geral
-  const usableCols = Math.min(dataCols, headerCols);
-
-  // Vamos percorrer cada linha de dados (rLocal = 0..)
-  for (let rLocal=0; rLocal<dataRows; rLocal++){
-    const r = dataStartRow + rLocal;
-
-    const rowVal = rowHeaders[rLocal] ?? '';
-    const rowNum = toNumberish(rowVal);
-
-    // regra de offset por linha:
-    // primeira linha de dados (rLocal=0) é OFFSET se firstRowIsOffset = true.
-    const isOffsetRow = (TUNE.firstRowIsOffset ? (rLocal % 2 === 0) : (rLocal % 2 === 1));
-
-    // cada hex ocupa 2 colunas.
-    // Se linha é offset: o primeiro hex "válido" começa 1 coluna depois (equivalente ao B:C)
-    // -> então anchorIndex começa em 1 (relativo a dataStartCol)
-    let anchorStart = isOffsetRow ? 1 : 0;
-
-    for (let cLocal = anchorStart; cLocal < usableCols-1; cLocal += 2){
-      const c = dataStartCol + cLocal;
-
-      // valor do "hex" no CSV: pega a primeira célula do par; se vazia, tenta a segunda.
-      const v1 = (RAW[r][c] ?? '').trim();
-      const v2 = (RAW[r][c+1] ?? '').trim();
-      const funcId = v1 || v2 || ''; // pode estar vazio (área fora do mapa)
-
-      // col/lin "cartográficos"
-      const colVal = colHeaders[cLocal] ?? '';
-      const colNum = toNumberish(colVal);
-
-      unitHexes.push({
-        rLocal,
-        cLocal,          // índice no header (0..)
-        anchor: true,
-        colVal, colNum,
-        rowVal, rowNum,
-        funcId,
-        // pixels preenchidos depois
-        x: 0, y: 0,
-        key: `${rLocal}:${cLocal}`
-      });
-    }
-  }
-
-  // calcular pixels
-  const halfX = TUNE.stepX / 2;
-
-  for (const h of unitHexes){
-    const rLocal = h.rLocal;
-
-    const isOffsetRow = (TUNE.firstRowIsOffset ? (rLocal % 2 === 0) : (rLocal % 2 === 1));
-    const rowShiftX = isOffsetRow ? halfX : 0;
-
-    // cIndexHex = número de hexes "naquele rowLocal"
-    // Como cLocal caminha 0/1,3,5... em passos de 2, o índice de hex na linha é floor((cLocal - anchorStart)/2)
-    const anchorStart = isOffsetRow ? 1 : 0;
-    const cHex = Math.floor((h.cLocal - anchorStart) / 2);
-
-    h.x = TUNE.offX + rowShiftX + cHex * TUNE.stepX;
-    h.y = TUNE.offY + rLocal * TUNE.stepY + TUNE.shiftY;
-  }
+/* =========================
+   Geometria correta (hex em pé)
+   ========================= */
+function steps(){
+  const s = TUNE.hexSize;
+  const stepX = Math.sqrt(3) * s;      // aresta com aresta horizontal
+  const stepY = 1.5 * s + TUNE.gapY;   // “escada” vertical correta
+  const shiftCol = stepY / 2;          // meio-hex vertical entre colunas
+  return { s, stepX, stepY, shiftCol };
 }
 
-function hexPathPointyTop(cx, cy, size){
-  // topo = -90 graus
+// ✅ coluna par (visual) mais baixa => aqui: q ímpar desce
+function hexCenter(q, rr){
+  const { stepX, stepY, shiftCol } = steps();
+  const x = TUNE.offX + q * stepX;
+  const y = TUNE.offY + rr * stepY + ((q % 2) ? shiftCol : 0);
+  return { x, y };
+}
+
+function hexPath(x,y){
+  const s = TUNE.hexSize;
+  const pts = [];
+  // pointy-top: 30,90,150,210,270,330
+  for(let k=0;k<6;k++){
+    const a = (Math.PI/180) * (60*k - 30);
+    pts.push([x + s*Math.cos(a), y + s*Math.sin(a)]);
+  }
+  return pts;
+}
+function drawHex(x,y, stroke, fill){
+  const pts = hexPath(x,y);
   ctx.beginPath();
-  for (let k=0; k<6; k++){
-    const ang = (-90 + k*60) * Math.PI/180;
-    const x = cx + Math.cos(ang) * size;
-    const y = cy + Math.sin(ang) * size;
-    if (k===0) ctx.moveTo(x,y);
-    else ctx.lineTo(x,y);
-  }
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
   ctx.closePath();
+  if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1;
+  ctx.stroke();
 }
 
+/* =========================
+   Render / Hit test
+   ========================= */
+function resizeCanvas(){
+  const w = window.innerWidth - 320;
+  const h = window.innerHeight;
+  canvas.width = Math.max(900, w);
+  canvas.height = Math.max(600, h);
+}
 function clear(){
-  ctx.clearRect(0,0,cv.width,cv.height);
-  // fundo
-  const g = ctx.createLinearGradient(0,0,0,cv.height);
-  g.addColorStop(0, 'rgba(9, 43, 70, 0.95)');
-  g.addColorStop(1, 'rgba(6, 26, 42, 0.95)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#071a2a';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-function render(){
+function render(ensureFind=false){
+  resizeCanvas();
   clear();
 
-  if (!unitHexes.length){
-    hud.textContent = 'Hover: —';
+  if(!MODEL){
+    elHover.textContent = '—';
+    elPick.textContent = '—';
     return;
   }
 
-  // desenhar contornos
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = 'rgba(42, 134, 166, 0.55)';
-
-  for (const h of unitHexes){
-    // Se quiser esconder vazios fora do mapa, descomente:
-    // if (!h.funcId) continue;
-
-    hexPathPointyTop(h.x, h.y, TUNE.hexSize);
-    ctx.stroke();
-  }
-
-  // hover
-  if (HOVER){
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(76,195,255,0.95)';
-    hexPathPointyTop(HOVER.x, HOVER.y, TUNE.hexSize);
-    ctx.stroke();
-  }
-
-  // seleção
-  if (SELECT){
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = 'rgba(0,229,255,0.95)';
-    hexPathPointyTop(SELECT.x, SELECT.y, TUNE.hexSize);
-    ctx.stroke();
-  }
-
-  // HUD
-  if (HOVER){
-    const colTxt = (HOVER.colVal ?? '').toString().trim();
-    const linTxt = (HOVER.rowVal ?? '').toString().trim();
-    const fid = (HOVER.funcId ?? '').toString().trim();
-    hud.textContent = `Hover: col=${colTxt || '—'}; lin=${linTxt || '—'} | hexFuncID=${fid || '—'} | grid(r=${HOVER.rLocal}, cLocal=${HOVER.cLocal})`;
-  } else {
-    hud.textContent = 'Hover: —';
-  }
-}
-
-function dist2(ax,ay,bx,by){
-  const dx=ax-bx, dy=ay-by;
-  return dx*dx+dy*dy;
-}
-
-function nearestHex(px, py){
-  if (!unitHexes.length) return null;
-  // busca simples (ok para ~8k hexes)
-  let best = null;
-  let bestD = Infinity;
-
-  for (const h of unitHexes){
-    const d = dist2(px,py,h.x,h.y);
-    if (d < bestD){
-      bestD = d;
-      best = h;
+  let foundIndex = -1;
+  if(PICK_FUNC){
+    foundIndex = MODEL.hexes.findIndex(h => h.funcID === PICK_FUNC);
+    if(foundIndex >= 0 && ensureFind){
+      PICK = foundIndex;
+      const {x,y} = hexCenter(MODEL.hexes[foundIndex].q, MODEL.hexes[foundIndex].rr);
+      const wrap = document.querySelector('.canvasWrap');
+      wrap.scrollTo({ left: Math.max(0, x - wrap.clientWidth*0.5), top: Math.max(0, y - wrap.clientHeight*0.5), behavior:'smooth' });
     }
   }
-  return best;
+
+  for(let i=0;i<MODEL.hexes.length;i++){
+    const h = MODEL.hexes[i];
+    const {x,y} = hexCenter(h.q, h.rr);
+    const isPick = (PICK === i);
+    const isFunc = (PICK_FUNC && h.funcID === PICK_FUNC);
+    drawHex(
+      x,y,
+      (isPick||isFunc) ? getCSS('--strokeHi') : getCSS('--stroke'),
+      (isPick||isFunc) ? getCSS('--fillHi')   : null
+    );
+  }
+
+  if(PICK !== null && MODEL.hexes[PICK]){
+    const h = MODEL.hexes[PICK];
+    elPick.textContent = `func=${h.funcID} | q=${h.q} rr=${h.rr} | col=${fmt(h.colValue)} lin=${fmt(h.rowValue)}`;
+  } else if(PICK_FUNC && foundIndex>=0){
+    const h = MODEL.hexes[foundIndex];
+    elPick.textContent = `func=${h.funcID} | q=${h.q} rr=${h.rr} | col=${fmt(h.colValue)} lin=${fmt(h.rowValue)}`;
+  } else {
+    elPick.textContent = '—';
+  }
 }
 
-// -------------------- Carregamento CSV --------------------
-
-async function loadCSVFromFetch(path){
-  const res = await fetch(path, { cache: "no-store" });
-  if (!res.ok) throw new Error(`fetch falhou: ${res.status} ${res.statusText}`);
-  const text = await res.text();
-  return text;
+function getCSS(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-function loadCSVFromFile(file){
-  return new Promise((resolve, reject)=>{
-    const fr = new FileReader();
-    fr.onload = ()=> resolve(String(fr.result || ""));
-    fr.onerror = ()=> reject(fr.error || new Error("Falha ao ler arquivo"));
-    fr.readAsText(file, "utf-8");
-  });
-}
-
-async function ingestCSVText(csvText){
-  RAW = parseCSV(csvText);
-
-  const meta = detectHeaders(RAW);
-  if (!meta){
-    setStatus(false, "Não consegui detectar cabeçalhos numéricos no CSV.");
-    return;
-  }
-
-  colHeaders = meta.colHeaders;
-  rowHeaders = meta.rowHeaders;
-  dataStartRow = meta.dataStartRow;
-  dataStartCol = meta.dataStartCol;
-
-  // sanity check
-  const dataRows = RAW.length - dataStartRow;
-  const dataCols = RAW[0].length - dataStartCol;
-
-  setStatus(true, `cols=${dataCols}, lins=${dataRows}, hexes(unit)≈${Math.floor(dataRows * (dataCols/2))} (antes de cortar vazios)`);
-
-  buildUnitHexes();
-  resizeCanvas();
-}
-
-// -------------------- UI handlers --------------------
-
-function readTuneFromUI(){
-  TUNE.hexSize = Number(els.hexSize.value) || 11;
-  TUNE.stepX = Number(els.stepX.value) || 18;
-  TUNE.stepY = Number(els.stepY.value) || 10;
-  TUNE.shiftY = Number(els.shiftY.value) || 0;
-  TUNE.offX = Number(els.offX.value) || 30;
-  TUNE.offY = Number(els.offY.value) || 30;
-  TUNE.firstRowIsOffset = !!els.firstRowIsOffset.checked;
-}
-
-els.btnFetch.addEventListener('click', async ()=>{
-  try{
-    setStatus(true, "carregando via fetch...");
-    const path = els.csvPath.value.trim() || "hex_grid.csv";
-    const text = await loadCSVFromFetch(path);
-    await ingestCSVText(text);
-  }catch(err){
-    console.error(err);
-    setStatus(false, String(err.message || err));
-  }
-});
-
-els.btnFile.addEventListener('click', async ()=>{
-  try{
-    const f = els.csvFile.files && els.csvFile.files[0];
-    if (!f) { setStatus(false, "Selecione um arquivo .csv primeiro."); return; }
-    setStatus(true, "carregando arquivo local...");
-    const text = await loadCSVFromFile(f);
-    await ingestCSVText(text);
-  }catch(err){
-    console.error(err);
-    setStatus(false, String(err.message || err));
-  }
-});
-
-els.btnApply.addEventListener('click', ()=>{
-  readTuneFromUI();
-  if (RAW){
-    buildUnitHexes();
-    render();
-  }
-});
-
-els.btnFind.addEventListener('click', ()=>{
-  if (!unitHexes.length) return;
-
-  const qCol = (els.qCol.value || "").trim();
-  const qLin = (els.qLin.value || "").trim();
-  if (!qCol || !qLin){
-    setFind("Preencha coluna e linha.");
-    return;
-  }
-
-  const colN = toNumberish(qCol);
-  const linN = toNumberish(qLin);
-  if (colN == null || linN == null){
-    setFind("Use números (aceita vírgula). Ex: 43,5 / 16,5");
-    return;
-  }
-
-  let best = null;
-  let bestD = Infinity;
-  for (const h of unitHexes){
-    if (h.colNum == null || h.rowNum == null) continue;
-    const dx = h.colNum - colN;
-    const dy = h.rowNum - linN;
+// hit-test por centro (suficiente e rápido)
+function nearestHexIndex(mx,my){
+  if(!MODEL) return -1;
+  let best=-1, bestD=Infinity;
+  for(let i=0;i<MODEL.hexes.length;i++){
+    const h = MODEL.hexes[i];
+    const {x,y} = hexCenter(h.q, h.rr);
+    const dx = mx-x, dy = my-y;
     const d = dx*dx + dy*dy;
-    if (d < bestD){
-      bestD = d;
-      best = h;
-    }
+    if(d < bestD){ bestD=d; best=i; }
   }
+  const s = TUNE.hexSize;
+  return (best>=0 && bestD <= (s*1.05)*(s*1.05)) ? best : -1;
+}
 
-  if (!best){
-    setFind("Nenhum hex com col/lin numéricos foi encontrado.");
-    return;
-  }
+/* =========================
+   Interação
+   ========================= */
+let lastHover=-1;
 
-  SELECT = best;
-  setFind(`Selecionado: col=${best.colVal} lin=${best.rowVal} | hexFuncID=${best.funcId || '—'}`);
+canvas.addEventListener('mousemove', (ev)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left;
+  const my = ev.clientY - rect.top;
+  const idx = nearestHexIndex(mx,my);
 
-  // rolar viewport até perto do hex (na prática: ajustar scroll para centralizar)
-  const wrap = document.getElementById('canvasWrap');
-  const targetX = best.x - wrap.clientWidth * 0.5;
-  const targetY = best.y - wrap.clientHeight * 0.5;
-  wrap.scrollLeft = Math.max(0, targetX);
-  wrap.scrollTop  = Math.max(0, targetY);
-
-  render();
-});
-
-els.btnClearSel.addEventListener('click', ()=>{
-  SELECT = null;
-  setFind("");
-  render();
-});
-
-// -------------------- Mouse interaction --------------------
-
-cv.addEventListener('mousemove', (ev)=>{
-  const rect = cv.getBoundingClientRect();
-  const px = ev.clientX - rect.left;
-  const py = ev.clientY - rect.top;
-  const near = nearestHex(px, py);
-
-  // só considera hover se estiver "perto" do centro
-  if (near){
-    const d = Math.sqrt(dist2(px,py,near.x,near.y));
-    if (d <= TUNE.hexSize * 1.15){
-      HOVER = near;
+  if(idx !== lastHover){
+    lastHover = idx;
+    if(idx>=0){
+      const h = MODEL.hexes[idx];
+      elHover.textContent = `func=${h.funcID} | q=${h.q} rr=${h.rr} | col=${fmt(h.colValue)} lin=${fmt(h.rowValue)}`;
     } else {
-      HOVER = null;
+      elHover.textContent = '—';
     }
-  } else {
-    HOVER = null;
+    render(); // redesenha só para atualizar highlight
   }
-  render();
 });
 
-cv.addEventListener('mouseleave', ()=>{
-  HOVER = null;
-  render();
-});
-
-cv.addEventListener('click', (ev)=>{
-  const rect = cv.getBoundingClientRect();
-  const px = ev.clientX - rect.left;
-  const py = ev.clientY - rect.top;
-  const near = nearestHex(px, py);
-  if (!near) return;
-  const d = Math.sqrt(dist2(px,py,near.x,near.y));
-  if (d <= TUNE.hexSize * 1.15){
-    SELECT = near;
-    setFind(`Selecionado: col=${near.colVal} lin=${near.rowVal} | hexFuncID=${near.funcId || '—'}`);
+canvas.addEventListener('click', (ev)=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left;
+  const my = ev.clientY - rect.top;
+  const idx = nearestHexIndex(mx,my);
+  if(idx>=0){
+    PICK = idx;
+    PICK_FUNC = null;
     render();
   }
 });
-async function autoLoadDefaultCSV(){
+
+/* =========================
+   Load CSV
+   ========================= */
+async function loadCSVFromURL(url){
   try{
-    setStatus(true, "carregando CSV padrão...");
-    const path = (els.csvPath.value || "hex_grid.csv").trim();
-    const text = await loadCSVFromFetch(path);
-    await ingestCSVText(text);
-  }catch(err){
+    elStatus.textContent = 'Status: carregando…';
+    const res = await fetch(url, { cache:'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const csv = parseCSV(text);
+    MODEL = buildModel(csv);
+
+    elStatus.innerHTML = `Status: <b>OK</b> — pares=${MODEL.pairCount}, linhas=${MODEL.dataRows.length}, hexes=${MODEL.hexes.length}`;
+    render();
+  } catch (err){
     console.error(err);
-    setStatus(false, String(err.message || err));
+    elStatus.textContent = 'Status: erro — ' + (err.message || String(err));
+    MODEL = null;
+    render();
   }
 }
-// boot
-readTuneFromUI();
-resizeCanvas();
-setStatus(true, "auto-load habilitado...");
-autoLoadDefaultCSV();
 
-// se a página voltar do cache (bfcache), recarrega de novo
-window.addEventListener('pageshow', (e)=>{ 
-  if (e.persisted) autoLoadDefaultCSV();
+/* Auto-load */
+window.addEventListener('load', ()=>{
+  document.getElementById('hexSize').value = TUNE.hexSize;
+  document.getElementById('offX').value = TUNE.offX;
+  document.getElementById('offY').value = TUNE.offY;
+  document.getElementById('gapY').value = TUNE.gapY;
+  loadCSVFromURL(elCsvUrl.value.trim());
 });
+window.addEventListener('resize', ()=>render());
 </script>
 </body>
 </html>
