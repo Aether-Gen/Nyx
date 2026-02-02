@@ -137,11 +137,7 @@
     </div>
   </main>
 </div>
-<label>
-  <input type="checkbox" id="invertParity">
-  Inverter offset de coluna
-</label>
-<script>
+
 /* ================================
    Config (defaults = seus valores)
 ================================ */
@@ -270,26 +266,23 @@ function drawHex(cx, cy, size, strokeStyle, fillStyle=null, lineW=1){
 }
 
 function cellToXY(r, c){
-  // Cada coluna do CSV = MEIO PASSO no X (porque hex ocupa ~2 colunas)
+  // 1) Seu CSV tem "meia-coluna" (ex: 43 e 43,5), então cada coluna do CSV avança metade do passo X.
   const halfStepX = TUNE.stepX / 2;
 
-  // Coluna "inteira" (agrupa 2 colunas CSV: 43 e 43,5)
-  const colFull = Math.floor(c / 2);
+  // 2) Coluna inteira lógica (agrupa 2 colunas do CSV: 43 + 43,5 = mesma "coluna 1")
+  const colFull = Math.floor(c / 2); // 0,1,2,3...
 
+  // 3) X (meia-coluna)
   const x = TUNE.offX + c * halfStepX;
 
-  const half = TUNE.stepY / 2;
-  const parity = colFull % 2;
+  // 4) Offset vertical canônico: coluna PAR (2,4,6...) mais baixa que a ímpar (1,3,5...)
+  //    Se colFull=0 representa "coluna 1", então colFull=1 representa "coluna 2".
+  //    Queremos colFull ímpar (+halfStepY).
+  const halfStepY = TUNE.stepY / 2;
+  const yParityOffset = (colFull % 2 === 1) ? halfStepY : 0;
 
-  // Inverter paridade (opcional)
-  const invert = document.getElementById('invertParity')?.checked ?? false;
-
-  const parityOffset = invert
-    ? (parity ? 0 : half)
-    : (parity ? half : 0);
-
-  // shiftY VOLTA a ser um ajuste fino real (somado depois)
-  const y = TUNE.offY + r * TUNE.stepY + parityOffset + (TUNE.shiftY ?? 0);
+  // 5) Y
+  const y = TUNE.offY + r * TUNE.stepY + yParityOffset + (TUNE.shiftY ?? 0);
 
   return { x, y };
 }
@@ -527,7 +520,6 @@ applyTuneBtn.addEventListener('click', ()=>{
   TUNE.hexSize = Number(document.getElementById('hexSize').value) || 11;
   TUNE.stepX   = Number(document.getElementById('stepX').value) || 18;
   TUNE.stepY   = Number(document.getElementById('stepY').value) || 10;
-  TUNE.shiftY  = Number(document.getElementById('shiftY').value) || 0;
   TUNE.offX    = Number(document.getElementById('offX').value) || 30;
   TUNE.offY    = Number(document.getElementById('offY').value) || 30;
   render();
