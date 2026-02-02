@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NYX — GPN Viewer (CSV unit hexes)</title>
+  <style>
+    :root{
+      --bg:#081a2a;
+      --panel:#0e2a41;
+      --panel2:#0b2235;
+      --text:#dbe7f2;
+      --muted:#9fb4c7;
+      --stroke:rgba(255,255,255,.22);
+      --stroke2:rgba(0,0,0,.35);
+      --hover:#00b7ff;
+      --pick:#00a3ff;
+      --err:#ff5a5a;
+      --ok:#7dffb2;
+    }
+    html,body{height:100%;margin:0;background:radial-gradient(circle at top,#163f63 0%,#081a2a 70%);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .app{display:grid;grid-template-columns:320px 1fr;height:100%}
+    .sidebar{padding:14px 14px 10px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-right:1px solid rgba(255,255,255,.08);overflow:auto}
+    .title{font-weight:700;letter-spacing:.08em;font-size:.95rem;margin:4px 0 10px}
+    .hint{color:var(--muted);font-size:.85rem;line-height:1.35;margin:0 0 10px}
+    .group{border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px;margin:10px 0;background:rgba(0,0,0,.18)}
+    .group h3{margin:0 0 8px;font-size:.82rem;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+    label{display:block;font-size:.82rem;color:var(--muted);margin:8px 0 4px}
+    input,button,select{
+      width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.25);color:var(--text);outline:none
+    }
+    input:focus{border-color:rgba(0,183,255,.55)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    button{cursor:pointer;background:linear-gradient(180deg,rgba(0,183,255,.28),rgba(0,183,255,.12));border-color:rgba(0,183,255,.35);font-weight:700}
+    button.secondary{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);font-weight:600}
+    .status{font-size:.82rem;color:var(--muted);margin-top:8px}
+    .status b{color:var(--text)}
+    .status .ok{color:var(--ok)}
+    .status .err{color:var(--err)}
+    .canvaswrap{position:relative;overflow:auto}
+    canvas{display:block;margin:18px auto;background:transparent}
+    .overlay{
+      position:absolute;left:16px;bottom:16px;right:16px;
+      background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.10);
+      border-radius:10px;padding:10px 12px;font-size:.85rem;color:var(--text);
+      backdrop-filter: blur(6px);
+      pointer-events:none;
+    }
+    .overlay .muted{color:var(--muted)}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.16);margin-left:6px;font-size:.78rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="title">NYX — GPN Viewer</div>
+    <p class="hint">
+      Desenha <b>todos os hexes unitários</b> do CSV (1 célula = 1 hex).<br/>
+      Sem coloração aleatória: contorno neutro e seleção/hover em azul.
+    </p>
+
+    <div class="group">
+      <h3>Fonte (CSV)</h3>
+      <label>Arquivo</label>
+      <input id="csvUrl" value="hex_grid.csv" />
+      <button id="loadBtn">Carregar CSV</button>
+      <div class="status" id="loadStatus">Status: <b class="muted">aguardando</b></div>
+      <p class="hint" style="margin-top:10px">
+        Dica: teste abrindo <span class="pill">/Nyx/hex_grid.csv</span> no navegador.
+      </p>
+    </div>
+
+    <div class="group">
+      <h3>Calibração (fixa por padrão)</h3>
+      <div class="row">
+        <div>
+          <label>Tamanho do hex</label>
+          <input id="hexSize" type="number" step="0.1" value="11">
+        </div>
+        <div>
+          <label>Shift Y por col</label>
+          <input id="shiftY" type="number" step="0.1" value="0">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Passo X</label>
+          <input id="stepX" type="number" step="0.1" value="18">
+        </div>
+        <div>
+          <label>Passo Y</label>
+          <input id="stepY" type="number" step="0.1" value="10">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Offset X</label>
+          <input id="offX" type="number" step="0.1" value="30">
+        </div>
+        <div>
+          <label>Offset Y</label>
+          <input id="offY" type="number" step="0.1" value="30">
+        </div>
+      </div>
+      <button class="secondary" id="applyTune">Aplicar</button>
+    </div>
+
+    <div class="group">
+      <h3>Busca (col;lin)</h3>
+      <label>Coluna (ex.: 45 ou 43,5)</label>
+      <input id="qCol" placeholder="ex: 45" />
+      <label>Linha (ex.: 17 ou 16,5)</label>
+      <input id="qLin" placeholder="ex: 16,5" />
+      <button id="findBtn">Destacar mais próximo</button>
+      <button class="secondary" id="clearBtn">Limpar seleção</button>
+      <div class="status" id="findStatus"></div>
+    </div>
+
+    <div class="group">
+      <h3>Modo de desenho</h3>
+      <label>
+        <input type="checkbox" id="fillToggle" />
+        Preencher hexes (leve)
+      </label>
+      <p class="hint">
+        Deixe desmarcado para máxima legibilidade (só contorno).
+      </p>
+    </div>
+
+  </aside>
+
+  <main class="canvaswrap" id="wrap">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="hud">
+      <div><b>Hover:</b> <span id="hudText" class="muted">—</span></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ================================
+   Config (defaults = seus valores)
+================================ */
+let TUNE = {
+  hexSize: 11,
+  stepX: 18,
+  stepY: 10,
+  shiftY: 0,
+  offX: 30,
+  offY: 30
+};
+
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+
+const loadBtn = document.getElementById('loadBtn');
+const loadStatus = document.getElementById('loadStatus');
+
+const applyTuneBtn = document.getElementById('applyTune');
+const fillToggle = document.getElementById('fillToggle');
+
+const hudText = document.getElementById('hudText');
+
+const qCol = document.getElementById('qCol');
+const qLin = document.getElementById('qLin');
+const findBtn = document.getElementById('findBtn');
+const clearBtn = document.getElementById('clearBtn');
+const findStatus = document.getElementById('findStatus');
+
+/* ================================
+   CSV parser (robusto: aspas/vírgulas)
+================================ */
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let cur = '';
+  let inQuotes = false;
+
+  for (let i=0;i<text.length;i++){
+    const ch = text[i];
+    const next = text[i+1];
+
+    if (ch === '"' ){
+      if (inQuotes && next === '"'){ cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes && (ch === ',' || ch === '\n' || ch === '\r')){
+      if (ch === '\r' && next === '\n') { /* windows */ }
+      row.push(cur);
+      cur = '';
+      if (ch === '\n'){
+        rows.push(row);
+        row = [];
+      }
+      continue;
+    }
+    cur += ch;
+  }
+  row.push(cur);
+  rows.push(row);
+
+  // remove linhas totalmente vazias
+  return rows.filter(r => r.some(c => (c ?? '').trim() !== ''));
+}
+
+function normNumStr(s){
+  // aceita "43,5" ou "43.5"
+  const t = (s ?? '').trim();
+  if (!t) return null;
+  return t.replace(',', '.');
+}
+
+function toNum(s){
+  const n = Number(normNumStr(s));
+  return Number.isFinite(n) ? n : null;
+}
+
+/* ================================
+   Data model
+   - cols: array de valores de coluna (float)
+   - lins: array de valores de linha (float)
+   - cells: array de hex unitários com:
+     {r, c, colVal, linVal, id}
+================================ */
+let MODEL = {
+  cols: [],
+  lins: [],
+  cells: [],
+  minX: 0,
+  maxX: 0,
+  minY: 0,
+  maxY: 0
+};
+
+let HOVER = null;   // cell index
+let PICK  = null;   // cell index
+
+/* ================================
+   Geometry
+================================ */
+function hexPoints(cx, cy, size){
+  // flat-top hex (melhor para stepX/stepY custom)
+  const pts = [];
+  for (let k=0;k<6;k++){
+    const a = Math.PI/3 * k; // 0..300
+    pts.push([cx + size*Math.cos(a), cy + size*Math.sin(a)]);
+  }
+  return pts;
+}
+
+function drawHex(cx, cy, size, strokeStyle, fillStyle=null, lineW=1){
+  const pts = hexPoints(cx, cy, size);
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  if (fillStyle){
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+  }
+  ctx.lineWidth = lineW;
+  ctx.strokeStyle = strokeStyle;
+  ctx.stroke();
+}
+
+function cellToXY(r, c){
+  // r,c são índices na matriz (0-based para células de dados)
+  // posicionamento: grid retangular com deslocamento por coluna
+  const x = TUNE.offX + c * TUNE.stepX;
+  const y = TUNE.offY + r * TUNE.stepY + (c * TUNE.shiftY);
+  return {x, y};
+}
+
+function computeCanvasSize(){
+  // tamanho baseado na contagem de células
+  const rows = MODEL.lins.length;
+  const cols = MODEL.cols.length;
+
+  const pad = 80;
+  const w = pad + TUNE.offX + (cols-1)*TUNE.stepX + pad;
+  const h = pad + TUNE.offY + (rows-1)*TUNE.stepY + pad;
+
+  canvas.width = Math.max(800, Math.ceil(w));
+  canvas.height = Math.max(400, Math.ceil(h));
+}
+
+function rebuildCells(){
+  MODEL.cells = [];
+  const rows = MODEL.lins.length;
+  const cols = MODEL.cols.length;
+
+  for (let r=0;r<rows;r++){
+    for (let c=0;c<cols;c++){
+      const id = MODEL.grid?.[r]?.[c] ?? '';
+      const idT = String(id).trim();
+      if (!idT) continue; // célula vazia = nada desenhado
+      MODEL.cells.push({
+        r, c,
+        colVal: MODEL.cols[c],
+        linVal: MODEL.lins[r],
+        id: idT
+      });
+    }
+  }
+}
+
+function render(){
+  computeCanvasSize();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // desenha todos os hexes unitários
+  const doFill = fillToggle.checked;
+
+  for (let i=0;i<MODEL.cells.length;i++){
+    const cell = MODEL.cells[i];
+    const {x,y} = cellToXY(cell.r, cell.c);
+
+    // contorno base
+    let stroke = getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim();
+    let fill = null;
+
+    // preenchimento opcional leve (sem aleatoriedade): baseado no próprio ID com alpha baixo
+    if (doFill){
+      const col = stableColorFromId(cell.id);
+      fill = `rgba(${col.r},${col.g},${col.b},0.22)`;
+    }
+
+    // hover/pick por cima
+    const isHover = (HOVER === i);
+    const isPick  = (PICK === i);
+
+    // desenha base
+    drawHex(x, y, TUNE.hexSize, stroke, fill, 1);
+
+    if (isHover){
+      drawHex(x, y, TUNE.hexSize+0.6, 'rgba(0,183,255,.85)', null, 2);
+    }
+    if (isPick){
+      drawHex(x, y, TUNE.hexSize+1.3, 'rgba(0,163,255,1)', null, 3);
+    }
+  }
+}
+
+function stableColorFromId(id){
+  // determinístico (não “aleatório”): hash simples
+  let h = 2166136261;
+  for (let i=0;i<id.length;i++){
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const r = (h      ) & 255;
+  const g = (h >>  8) & 255;
+  const b = (h >> 16) & 255;
+  return {r,g,b};
+}
+
+/* ================================
+   Hit test (hover)
+================================ */
+function nearestCellIndex(px, py){
+  // aproximação: encontra centro mais próximo
+  // (rápido e suficiente para hexes pequenos)
+  let best = -1;
+  let bestD2 = Infinity;
+
+  for (let i=0;i<MODEL.cells.length;i++){
+    const cell = MODEL.cells[i];
+    const {x,y} = cellToXY(cell.r, cell.c);
+    const dx = px - x;
+    const dy = py - y;
+    const d2 = dx*dx + dy*dy;
+    if (d2 < bestD2){
+      bestD2 = d2;
+      best = i;
+    }
+  }
+  // limite: só considera hover se estiver “perto o bastante”
+  const max = (TUNE.hexSize*1.6);
+  if (best >= 0 && bestD2 <= max*max) return best;
+  return -1;
+}
+
+canvas.addEventListener('mousemove', (ev)=>{
+  const rect = canvas.getBoundingClientRect();
+  const px = (ev.clientX - rect.left);
+  const py = (ev.clientY - rect.top);
+
+  const idx = nearestCellIndex(px, py);
+  HOVER = (idx >= 0) ? idx : null;
+
+  if (HOVER != null){
+    const cell = MODEL.cells[HOVER];
+    hudText.textContent =
+      `col=${fmt(cell.colVal)} ; lin=${fmt(cell.linVal)}  |  hexFuncID=${cell.id}  |  grid(r=${cell.r}, c=${cell.c})`;
+  } else {
+    hudText.textContent = '—';
+  }
+  render();
+});
+
+canvas.addEventListener('click', ()=>{
+  if (HOVER != null){
+    PICK = HOVER;
+    const cell = MODEL.cells[PICK];
+    findStatus.innerHTML = `Selecionado: <b>col=${fmt(cell.colVal)} ; lin=${fmt(cell.linVal)}</b> <span class="pill">${cell.id}</span>`;
+    render();
+  }
+});
+
+function fmt(n){
+  // volta para vírgula se for .5, etc.
+  if (typeof n !== 'number') return String(n);
+  const s = String(n);
+  return s.includes('.') ? s.replace('.', ',') : s;
+}
+
+/* ================================
+   Load CSV via fetch
+================================ */
+async function loadCSV(url){
+  loadStatus.innerHTML = `Status: <b class="muted">carregando...</b>`;
+  const res = await fetch(url, {cache:'no-store'});
+  if (!res.ok) throw new Error(`HTTP ${res.status} ao buscar ${url}`);
+  const text = await res.text();
+
+  const rows = parseCSV(text);
+
+  // encontra a linha do header de colunas (a primeira que tenha números suficientes)
+  // estratégia: a primeira linha que tenha >= 10 itens numéricos.
+  let headerRowIdx = -1;
+  let header = null;
+
+  for (let i=0;i<rows.length;i++){
+    const r = rows[i];
+    let nums = 0;
+    for (let j=0;j<r.length;j++){
+      if (toNum(r[j]) != null) nums++;
+    }
+    if (nums >= 10){
+      headerRowIdx = i;
+      header = r;
+      break;
+    }
+  }
+  if (headerRowIdx < 0) throw new Error('Não encontrei header de colunas numéricas no CSV.');
+
+  // colunas: do segundo campo em diante (assumindo primeira coluna = linha)
+  const cols = [];
+  for (let j=1;j<header.length;j++){
+    const v = toNum(header[j]);
+    if (v == null) break; // para quando acabar
+    cols.push(v);
+  }
+  if (cols.length < 5) throw new Error('Header de colunas numéricas muito curto.');
+
+  // linhas + grid: a partir da próxima linha
+  const lins = [];
+  const grid = [];
+
+  for (let i=headerRowIdx+1;i<rows.length;i++){
+    const r = rows[i];
+
+    const linV = toNum(r[0]);
+    if (linV == null) continue; // pula linhas sem ID de linha
+
+    lins.push(linV);
+
+    const rowCells = [];
+    for (let j=1;j<1+cols.length;j++){
+      rowCells.push((r[j] ?? '').trim());
+    }
+    grid.push(rowCells);
+  }
+
+  MODEL.cols = cols;
+  MODEL.lins = lins;
+  MODEL.grid = grid;
+
+  rebuildCells();
+  computeCanvasSize();
+
+  loadStatus.innerHTML = `Status: <b class="ok">OK</b> — cols=<b>${MODEL.cols.length}</b>, lins=<b>${MODEL.lins.length}</b>, hexes unitários=<b>${MODEL.cells.length}</b>`;
+  PICK = null;
+  HOVER = null;
+  render();
+}
+
+loadBtn.addEventListener('click', async ()=>{
+  try{
+    await loadCSV(document.getElementById('csvUrl').value.trim());
+  }catch(e){
+    loadStatus.innerHTML = `Status: <b class="err">erro</b> — ${escapeHtml(e.message)}`;
+  }
+});
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ================================
+   Apply tune (seus números)
+================================ */
+applyTuneBtn.addEventListener('click', ()=>{
+  TUNE.hexSize = Number(document.getElementById('hexSize').value) || 11;
+  TUNE.stepX   = Number(document.getElementById('stepX').value) || 18;
+  TUNE.stepY   = Number(document.getElementById('stepY').value) || 10;
+  TUNE.shiftY  = Number(document.getElementById('shiftY').value) || 0;
+  TUNE.offX    = Number(document.getElementById('offX').value) || 30;
+  TUNE.offY    = Number(document.getElementById('offY').value) || 30;
+  render();
+});
+
+/* ================================
+   Find nearest by coordinate
+================================ */
+function findNearestByCoord(colTarget, linTarget){
+  let best = -1;
+  let bestD2 = Infinity;
+
+  for (let i=0;i<MODEL.cells.length;i++){
+    const cell = MODEL.cells[i];
+    const dx = cell.colVal - colTarget;
+    const dy = cell.linVal - linTarget;
+    const d2 = dx*dx + dy*dy;
+    if (d2 < bestD2){
+      bestD2 = d2;
+      best = i;
+    }
+  }
+  return best;
+}
+
+findBtn.addEventListener('click', ()=>{
+  const c = toNum(qCol.value);
+  const l = toNum(qLin.value);
+  if (c == null || l == null || !MODEL.cells.length){
+    findStatus.innerHTML = `<span class="err">Entrada inválida ou CSV não carregado.</span>`;
+    return;
+  }
+  const idx = findNearestByCoord(c,l);
+  if (idx < 0){
+    findStatus.innerHTML = `<span class="err">Nenhum hex encontrado.</span>`;
+    return;
+  }
+  PICK = idx;
+  const cell = MODEL.cells[PICK];
+  findStatus.innerHTML =
+    `Mais próximo: <b>col=${fmt(cell.colVal)} ; lin=${fmt(cell.linVal)}</b> <span class="pill">${cell.id}</span>`;
+  render();
+});
+
+clearBtn.addEventListener('click', ()=>{
+  PICK = null;
+  findStatus.textContent = '';
+  render();
+});
+
+/* ================================
+   Auto-load (opcional)
+================================ */
+(function init(){
+  // aplica defaults
+  document.getElementById('hexSize').value = TUNE.hexSize;
+  document.getElementById('stepX').value = TUNE.stepX;
+  document.getElementById('stepY').value = TUNE.stepY;
+  document.getElementById('shiftY').value = TUNE.shiftY;
+  document.getElementById('offX').value = TUNE.offX;
+  document.getElementById('offY').value = TUNE.offY;
+
+  // tenta carregar automaticamente
+  loadCSV(document.getElementById('csvUrl').value.trim()).catch(()=>{});
+})();
+</script>
+</body>
+</html>
