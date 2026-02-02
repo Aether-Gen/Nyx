@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nyx — GPN Viewer (CSV)</title>
+
+  <style>
+    :root{
+      --bg:#07121c;
+      --panel:#0b1b2a;
+      --panel2:#0f2436;
+      --text:#e9f1f7;
+      --muted:#a7b6c6;
+      --accent:#f2a900;
+      --line:rgba(255,255,255,.12);
+    }
+
+    *{ box-sizing:border-box; }
+
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+
+    .wrap{
+      display:grid;
+      grid-template-columns: 380px 1fr;
+      height:100vh;
+    }
+
+    .panel{
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-right:1px solid var(--line);
+      padding:16px;
+      overflow:auto;
+    }
+
+    h1{
+      font-size:13px;
+      letter-spacing:.14em;
+      margin:0 0 12px 0;
+      color:var(--muted);
+    }
+
+    .card{
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:12px;
+      margin-bottom:14px;
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 120px;
+      gap:10px;
+      margin:8px 0;
+      align-items:center;
+    }
+
+    label{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    input{
+      width:100%;
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+    }
+
+    button{
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:rgba(242,169,0,.15);
+      color:var(--text);
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    button:hover{
+      background:rgba(242,169,0,.25);
+    }
+
+    .stage{
+      position:relative;
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .hud{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      background:rgba(0,0,0,.35);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      pointer-events:none;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <aside class="panel">
+    <h1>NYX — GPN VIEWER</h1>
+
+    <div class="card">
+      <div class="hint">
+        Viewer do GPN a partir de <b>CSV externo</b>.<br>
+        Célula não vazia = hex básico.<br>
+        Mesmo texto = hex funcional.
+      </div>
+    </div>
+
+    <div class="card">
+      <h1>Calibração</h1>
+
+      <div class="row">
+        <label>Tamanho do hex</label>
+        <input id="hexSize" type="number" step="0.5" value="18">
+      </div>
+
+      <div class="row">
+        <label>Passo X (coluna)</label>
+        <input id="colStep" type="number" step="0.5" value="16">
+      </div>
+
+      <div class="row">
+        <label>Passo Y (linha)</label>
+        <input id="rowStep" type="number" step="0.5" value="16">
+      </div>
+
+      <div class="row">
+        <label>Shift Y por coluna ímpar</label>
+        <input id="yShift" type="number" step="0.5" value="8">
+      </div>
+
+      <div class="row">
+        <label>Offset X</label>
+        <input id="offX" type="number" step="1" value="40">
+      </div>
+
+      <div class="row">
+        <label>Offset Y</label>
+        <input id="offY" type="number" step="1" value="40">
+      </div>
+
+      <button id="fit">Auto enquadrar</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="hud" id="hud">Carregando CSV…</div>
+  </main>
+
+</div>
+
+<script>
+/* =======================
+   CSV PARSER
+======================= */
+function parseCSV(text){
+  const rows=[], row=[];
+  let cur="", inQuotes=false;
+
+  for(let i=0;i<text.length;i++){
+    const ch=text[i], nx=text[i+1];
+
+    if(ch === '"'){
+      if(inQuotes && nx === '"'){ cur+='"'; i++; }
+      else inQuotes=!inQuotes;
+      continue;
+    }
+
+    if(!inQuotes && (ch===',' || ch===';')){
+      row.push(cur.trim()); cur=""; continue;
+    }
+
+    if(!inQuotes && (ch==='\n' || ch==='\r')){
+      if(ch==='\r' && nx==='\n') i++;
+      row.push(cur.trim()); cur="";
+      if(row.some(v=>v!=="")) rows.push(row.splice(0));
+      row.length=0;
+      continue;
+    }
+
+    cur+=ch;
+  }
+
+  row.push(cur.trim());
+  if(row.some(v=>v!=="")) rows.push(row);
+  return rows;
+}
+
+/* =======================
+   CANVAS + STATE
+======================= */
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const hud=document.getElementById('hud');
+
+let grid=[], cells=[];
+
+function resize(){
+  const dpr=Math.max(1,window.devicePixelRatio||1);
+  const r=canvas.getBoundingClientRect();
+  canvas.width=r.width*dpr;
+  canvas.height=r.height*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function colorFor(id){
+  let h=0;
+  for(let i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))>>>0;
+  return `hsl(${h%360} 60% 55%)`;
+}
+
+function buildCells(){
+  cells=[];
+  for(let r=0;r<grid.length;r++){
+    for(let c=0;c<grid[r].length;c++){
+      const v=grid[r][c];
+      if(!v) continue;
+      cells.push({r,c,id:v,x:0,y:0});
+    }
+  }
+}
+
+function layout(){
+  const size=+hexSize.value;
+  const colStep=+colStepInput.value;
+  const rowStep=+rowStepInput.value;
+  const yShift=+yShiftInput.value;
+  const ox=+offX.value, oy=+offY.value;
+
+  for(const cell of cells){
+    const parity=cell.c%2;
+    cell.x=ox+cell.c*colStep;
+    cell.y=oy+cell.r*rowStep+(parity?yShift:0);
+  }
+}
+
+function draw(){
+  resize();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  layout();
+
+  for(const cell of cells){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=Math.PI/3*i;
+      const x=cell.x+Math.cos(a)*hexSize.value;
+      const y=cell.y+Math.sin(a)*hexSize.value;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fillStyle=colorFor(cell.id);
+    ctx.globalAlpha=0.25;
+    ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle="rgba(255,255,255,.15)";
+    ctx.stroke();
+  }
+}
+
+/* =======================
+   UI
+======================= */
+const hexSize=document.getElementById('hexSize');
+const colStepInput=document.getElementById('colStep');
+const rowStepInput=document.getElementById('rowStep');
+const yShiftInput=document.getElementById('yShift');
+const offX=document.getElementById('offX');
+const offY=document.getElementById('offY');
+
+document.getElementById('fit').onclick=()=>{
+  layout();
+  const xs=cells.map(c=>c.x), ys=cells.map(c=>c.y);
+  offX.value=40-Math.min(...xs);
+  offY.value=40-Math.min(...ys);
+  draw();
+};
+
+[hexSize,colStepInput,rowStepInput,yShiftInput,offX,offY]
+.forEach(i=>i.oninput=draw);
+
+/* =======================
+   FETCH DO CSV
+======================= */
+fetch('hex_grid.csv')
+  .then(r=>{
+    if(!r.ok) throw new Error('CSV não encontrado');
+    return r.text();
+  })
+  .then(text=>{
+    grid=parseCSV(text);
+    buildCells();
+    hud.textContent=`${cells.length} hexes carregados`;
+    draw();
+  })
+  .catch(err=>{
+    console.error(err);
+    hud.textContent='Erro ao carregar CSV';
+  });
+
+window.addEventListener('resize',draw);
+</script>
+
+</body>
+</html>
