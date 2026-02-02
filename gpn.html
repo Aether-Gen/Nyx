@@ -270,19 +270,26 @@ function drawHex(cx, cy, size, strokeStyle, fillStyle=null, lineW=1){
 }
 
 function cellToXY(r, c){
-  const x = TUNE.offX + c * TUNE.stepX;
+  // Cada coluna do CSV = MEIO PASSO no X (porque hex ocupa ~2 colunas)
+  const halfStepX = TUNE.stepX / 2;
+
+  // Coluna "inteira" (agrupa 2 colunas CSV: 43 e 43,5)
+  const colFull = Math.floor(c / 2);
+
+  const x = TUNE.offX + c * halfStepX;
 
   const half = TUNE.stepY / 2;
-  const parity = c % 2;
+  const parity = colFull % 2;
 
-  // ⚠️ leitura do checkbox AQUI
+  // Inverter paridade (opcional)
   const invert = document.getElementById('invertParity')?.checked ?? false;
 
   const parityOffset = invert
     ? (parity ? 0 : half)
     : (parity ? half : 0);
 
-  const y = TUNE.offY + r * TUNE.stepY + parityOffset;
+  // shiftY VOLTA a ser um ajuste fino real (somado depois)
+  const y = TUNE.offY + r * TUNE.stepY + parityOffset + (TUNE.shiftY ?? 0);
 
   return { x, y };
 }
